@@ -41,6 +41,7 @@ dev.db-wal
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
 backups/
 
 # ide
