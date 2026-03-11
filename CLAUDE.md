@@ -1,41 +1,54 @@
 # CLAUDE.md
 
 ## Project Overview
-<!-- Replace with your project description -->
-[Project Name] — [2-3 sentence description of what this project does, who it serves, and the core problem it solves.]
+Research Writing Assistant — A personal web application that automates the end-to-end content pipeline: researching topics from web and academic sources, writing AI-assisted drafts for LinkedIn and blog posts, and publishing on a schedule. Runs locally on localhost, stores all work-in-progress in SQLite, and publishes approved content to Firebase (blog) and LinkedIn.
 
 ## Tech Stack
-- Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS
-- Backend: Node.js, Next.js API Routes
-- Database: Firebase Firestore
-- AI: Claude API (Anthropic), OpenAI Embeddings
-- Auth: Firebase Auth
-- Testing: Vitest (unit), Playwright (E2E)
-- Deployment: Vercel
+- Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS v4
+- UI: shadcn/ui (built on @base-ui/react, class-variance-authority), Lucide icons
+- Editor: TipTap (rich text for blog, plain text for LinkedIn)
+- State: TanStack Query v5 (server state), React useState (local)
+- Backend: Next.js API Routes, SSE streaming for AI responses
+- Database: SQLite via Drizzle ORM (better-sqlite3) — synchronous `.run()/.get()/.all()`
+- AI: Claude API (@anthropic-ai/sdk) — streaming + non-streaming
+- Research: Tavily Search API, Semantic Scholar API, arXiv API
+- Validation: Zod schemas on all API inputs
+- Testing: Vitest (unit + integration)
+- Auth: None (single-user local app)
 
 ## Commands
 ```
 npm run dev          # Start dev server (localhost:3000)
 npm run build        # Production build
-npm run test         # Run all tests
-npm run test:unit    # Unit tests only
-npm run test:e2e     # E2E tests (requires dev server running)
-npm run lint         # ESLint + Prettier check
-npm run typecheck    # TypeScript strict check
+npm run test         # Run all Vitest tests (unit + integration)
+npm run lint         # ESLint check
+npm run typecheck    # TypeScript strict check (tsc --noEmit)
+npm run db:generate  # Generate Drizzle migrations
+npm run db:migrate   # Run Drizzle migrations
+npm run db:seed      # Seed database (tsx src/db/seed.ts)
+npm run db:studio    # Open Drizzle Studio
 ```
 
 ## Project Structure
 ```
 src/
-  app/                    # Next.js App Router pages
+  app/                    # Next.js App Router pages + API routes
+    api/                  # REST API routes (drafts/, write/, research/, projects/, config/)
+    projects/[id]/        # Project workspace pages (research, write, schedule)
+    schedule/             # Scheduling page
+    settings/             # App settings page
   features/               # Feature modules — each has its own CLAUDE.md boundary
-    [feature-name]/
-      CLAUDE.md           # Feature boundary rules (see Rule 5)
-      components/ hooks/ services/ types.ts
+    research/             # Research pipeline (Tavily, Semantic Scholar, arXiv, Claude summaries)
+    writing/              # AI-powered writing (3 modes, SSE streaming, anti-slop review)
+    content-management/   # Draft management and publishing
   shared/                 # Cross-feature utilities, types, components
-    CLAUDE.md             # Boundary: ask before modifying
-tests/                    # unit/, integration/, e2e/ (mirrors src/features/)
+    components/ui/        # shadcn/ui primitives (button, card, input, badge, etc.)
+    lib/                  # Utilities (ai-client, logger, sse-utils, prompts/)
+    types/                # Shared TypeScript types (database.ts)
+  db/                     # Drizzle schema, migrations, seed
+tests/                    # unit/, integration/ (mirrors src/ structure)
 docs/                     # requirements/, decisions/, testing/, templates/
+data/                     # Runtime data (images/, SQLite DB)
 ```
 
 Every feature folder MUST have its own `CLAUDE.md`. Template: `docs/templates/FEATURE-CLAUDE.md`
@@ -46,7 +59,7 @@ Every feature folder MUST have its own `CLAUDE.md`. Template: `docs/templates/FE
 - Named exports over default exports
 - `async/await` over `.then()` chains
 - Every async op wrapped in try-catch with typed errors
-- Use project logger (`src/lib/logger.ts`), never bare `console.log`
+- Use project logger (`src/shared/lib/logger.ts`), never bare `console.log`
 - File naming: kebab-case for files, PascalCase for components
 
 ## Git Workflow
@@ -80,7 +93,7 @@ grep -rn "sk-\|AKIA\|ghp_\|firebase.*apiKey\|Bearer \|password\s*=" --include="*
 - **If a secret is detected, STOP. Do not commit. Alert me.**
 
 ### Rule 2: Test & Review Every Feature
-- Write tests DURING implementation, not after (unit + integration + E2E)
+- Write tests DURING implementation, not after (unit + integration)
 - Run before every commit: `npm run typecheck && npm run lint && npm run test`
 - Self-review before committing:
   - Matches requirements in `docs/requirements/`?
@@ -90,7 +103,7 @@ grep -rn "sk-\|AKIA\|ghp_\|firebase.*apiKey\|Bearer \|password\s*=" --include="*
 - **If tests fail, fix before moving on. Never skip.**
 
 ### Rule 3: Error Logging
-- Use structured logger at `src/lib/logger.ts` for ALL logging
+- Use structured logger at `src/shared/lib/logger.ts` for ALL logging
 - If logger doesn't exist, create it from `docs/templates/logger-template.ts`
 - Every try-catch → `logger.error('[feature-name]', 'description', error)`
 - Every API route → log entry + errors

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { Inter } from 'next/font/google';
+import { cn } from '@/shared/lib/utils';
+import { AppShell } from '@/shared/components/layout';
+import { QueryProvider } from '@/shared/lib/query-provider';
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'Research Writing Assistant',
@@ -16,8 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html lang="en" className={cn('font-sans', inter.variable)}>
+      <body>
+        <QueryProvider>
+          <AppShell>{children}</AppShell>
+        </QueryProvider>
+      </body>
     </html>
   );
 }

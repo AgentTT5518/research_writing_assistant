@@ -1,6 +1,6 @@
 # Architecture — Research Writing Assistant
 
-> Last updated: 2026-03-10 (rev 2 — post-review fixes) | Updated by: Claude Code
+> Last updated: 2026-03-11 (rev 5 — Phase 3 Writing) | Updated by: Claude Code
 
 ## System Overview
 
@@ -105,7 +105,8 @@ All work-in-progress stays local. Firebase and LinkedIn are only touched at publ
 | Writing Editor | `src/features/writing/` | TipTap editor, 3 AI writing modes, anti-slop review, platform preview | Claude API, TipTap |
 | Publishing | `src/features/publishing/` | Firebase blog publish, LinkedIn publish, scheduling | Firebase Admin SDK, LinkedIn API, node-cron |
 | Content Management | `src/features/content-management/` | Projects, draft lists, status tracking, search | SQLite |
-| AI Client | `src/shared/lib/ai-client.ts` | Claude API wrapper, modular prompt composition | Anthropic SDK |
+| AI Client | `src/shared/lib/ai-client.ts` | Claude API wrapper: summarization, streaming content generation, non-streaming generation, anti-slop review | Anthropic SDK |
+| SSE Utils | `src/shared/lib/sse-utils.ts` | Server-Sent Events response helper with keepalive (15s) and abort detection | — |
 | Firebase Service | `src/shared/lib/firebase-admin.ts` | Blog publishing, image upload to Firebase Storage | Firebase Admin SDK |
 | LinkedIn Service | `src/shared/lib/linkedin-client.ts` | OAuth 2.0 flow, post creation, image upload | LinkedIn Marketing API |
 | Tavily Client | `src/shared/lib/tavily-client.ts` | Web search with AI-ready cleaned results | Tavily API |
@@ -478,7 +479,7 @@ Visible in Settings page as:
 | `/projects` | Project List | project-list, project-card |
 | `/projects/[id]` | Project Detail | Research count, draft count, quick actions |
 | `/projects/[id]/research` | Research Workspace | search-panel, url-input, research-library, research-card |
-| `/projects/[id]/write` | Writing Editor | writing-editor (TipTap), mode-selector, platform-preview, anti-slop-report |
+| `/projects/[id]/write` | Writing Editor | writing-workspace, tiptap-editor, editor-toolbar, mode-selector, content-type-selector, research-selector, platform-preview, anti-slop-report, co-write-panel, outline-panel, cover-image-upload, character-counter |
 | `/projects/[id]/publish` | Publishing | post-preview, schedule-picker, publish-status |
 | `/schedule` | Schedule Dashboard | Global schedule view, status filters |
 | `/settings` | Settings | Ban list editor, API key status, LinkedIn connect, AI usage/cost dashboard |
@@ -511,6 +512,9 @@ Visible in Settings page as:
 | PRD & Requirements | 2026-03-10 | Defined core workflow, Firebase schema, content guidelines | `docs/requirements/PRD.md`, `docs/requirements/content-guidelines-and-prompt-templates.md` |
 | Architecture Design | 2026-03-10 | Chose Drizzle, TipTap, Tavily, two-zone data model | `ARCHITECTURE.md`, `docs/decisions/001-004` |
 | Architecture Review | 2026-03-10 | Added retry logic, AI cost tracking, SSE protocol, image lifecycle, version policy, auth clarification | `ARCHITECTURE.md`, `docs/requirements/PRD.md` |
+| Phase 1: Foundation | 2026-03-10 | Next.js 14 scaffold, Drizzle+SQLite (10 tables), structured logger, Project CRUD API, app shell with sidebar, shadcn/ui, TanStack Query, Tailwind v4 | `src/db/schema.ts`, `src/shared/lib/*`, `src/app/api/projects/*`, `src/features/content-management/*`, `src/shared/components/layout/*`, `src/app/**/*` |
+| Phase 2: Research | 2026-03-11 | Tavily web search, Semantic Scholar + arXiv academic search, Claude API URL summarization with AI usage tracking, Research CRUD with tag management (find-or-create), 8 API routes, Research Workspace UI (search panel, URL import, research library), 52 new tests (97 total) | `src/shared/lib/tavily-client.ts`, `src/shared/lib/academic-client.ts`, `src/shared/lib/ai-client.ts`, `src/app/api/research/**/*`, `src/features/research/**/*` |
+| Phase 3: Writing | 2026-03-11 | Modular prompt templates (11 files in `src/shared/lib/prompts/`), AI client extension (streaming + non-streaming + review), SSE response utility with keepalive, Draft CRUD API (4 routes), 6 Writing API routes (3 SSE streaming: draft/expand/co-write; 3 non-streaming: outline/adapt/review), Writing feature services + 12 TanStack Query hooks (including 3 streaming hooks with AbortController + 5min timeout), TipTap rich text editor (minimal mode for LinkedIn, full StarterKit for blog), Writing Workspace UI (mode selector, content type toggle, research selector, platform preview, anti-slop report, co-write panel, outline panel, cover image upload with magic bytes validation), Zod validation for all inputs, token estimation pre-flight checks, auto-save debounced at 5s (disabled during streaming), version pruning beyond 20. 128 new tests (225 total). | `src/shared/lib/prompts/**/*`, `src/shared/lib/ai-client.ts`, `src/shared/lib/sse-utils.ts`, `src/app/api/drafts/**/*`, `src/app/api/write/**/*`, `src/features/writing/**/*` |
 
 ## Error Handling Strategy
 
