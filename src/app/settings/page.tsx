@@ -1,10 +1,13 @@
+'use client';
+
+import { Suspense } from 'react';
+import { SettingsPageContent } from '@/features/publishing/components';
+import { Loader2 } from 'lucide-react';
+
 export default function SettingsPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <p className="mt-2 text-muted-foreground">
-        Coming in Phase 2 — ban list editor, API key status, LinkedIn connect, AI usage dashboard.
-      </p>
-    </div>
+    <Suspense fallback={<Loader2 className="size-6 animate-spin mx-auto mt-12 text-muted-foreground" />}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
