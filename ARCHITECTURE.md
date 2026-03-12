@@ -1,6 +1,6 @@
 # Architecture — Research Writing Assistant
 
-> Last updated: 2026-03-11 (rev 5 — Phase 3 Writing) | Updated by: Claude Code
+> Last updated: 2026-03-12 (rev 6 — Phase 4 Publishing) | Updated by: Claude Code
 
 ## System Overview
 
@@ -311,6 +311,7 @@ export default {
 | POST | `/api/write/review` | Anti-slop review | No | `{ draftId }` | `{ score, report, revised }` |
 | POST | `/api/publish/blog` | Publish to Firebase blog | No | `{ draftId }` | `{ postId, url }` |
 | POST | `/api/publish/linkedin` | Publish to LinkedIn | No | `{ draftId }` | `{ postUrl }` |
+| GET | `/api/publish/linkedin/auth` | Initiate LinkedIn OAuth | No | — | Redirect to LinkedIn |
 | GET | `/api/publish/linkedin/callback` | LinkedIn OAuth callback | No | Query params (code) | Redirect |
 | GET | `/api/schedule` | List schedules | No | Query params | `Schedule[]` |
 | POST | `/api/schedule` | Create schedule | No | `{ draftId, platform, scheduledAt }` | `Schedule` |
@@ -411,6 +412,7 @@ Full prompt templates and content guidelines: `docs/requirements/content-guideli
 - **Retry with backoff:** Failed jobs retry up to 3 times with 5-minute minimum gap between attempts
 - **No overlapping ticks:** Scheduler uses a mutex flag to prevent concurrent tick() execution
 - **Manual retry:** Users can manually retry failed publishes from the dashboard UI
+- **Local-only constraint:** Scheduler requires `npm run dev` or `npm start` to be running. If the server was down at a scheduled time, posts publish on next startup via `recoverStuckJobs()` + first tick
 - **Fallback startup:** If Next.js instrumentation hook is unavailable, run scheduler as standalone process via `npm run scheduler`
 
 ## Draft Status Lifecycle
@@ -480,9 +482,9 @@ Visible in Settings page as:
 | `/projects/[id]` | Project Detail | Research count, draft count, quick actions |
 | `/projects/[id]/research` | Research Workspace | search-panel, url-input, research-library, research-card |
 | `/projects/[id]/write` | Writing Editor | writing-workspace, tiptap-editor, editor-toolbar, mode-selector, content-type-selector, research-selector, platform-preview, anti-slop-report, co-write-panel, outline-panel, cover-image-upload, character-counter |
-| `/projects/[id]/publish` | Publishing | post-preview, schedule-picker, publish-status |
-| `/schedule` | Schedule Dashboard | Global schedule view, status filters |
-| `/settings` | Settings | Ban list editor, API key status, LinkedIn connect, AI usage/cost dashboard |
+| `/projects/[id]/publish` | Publishing | publish-workspace, post-preview, schedule-picker, publish-status |
+| `/schedule` | Schedule Dashboard | schedule-dashboard, schedule-card, status/platform filters |
+| `/settings` | Settings | settings-page (tabs), api-key-status, linkedin-connect, ban-list-editor |
 
 ## Tech Stack
 
@@ -515,6 +517,7 @@ Visible in Settings page as:
 | Phase 1: Foundation | 2026-03-10 | Next.js 14 scaffold, Drizzle+SQLite (10 tables), structured logger, Project CRUD API, app shell with sidebar, shadcn/ui, TanStack Query, Tailwind v4 | `src/db/schema.ts`, `src/shared/lib/*`, `src/app/api/projects/*`, `src/features/content-management/*`, `src/shared/components/layout/*`, `src/app/**/*` |
 | Phase 2: Research | 2026-03-11 | Tavily web search, Semantic Scholar + arXiv academic search, Claude API URL summarization with AI usage tracking, Research CRUD with tag management (find-or-create), 8 API routes, Research Workspace UI (search panel, URL import, research library), 52 new tests (97 total) | `src/shared/lib/tavily-client.ts`, `src/shared/lib/academic-client.ts`, `src/shared/lib/ai-client.ts`, `src/app/api/research/**/*`, `src/features/research/**/*` |
 | Phase 3: Writing | 2026-03-11 | Modular prompt templates (11 files in `src/shared/lib/prompts/`), AI client extension (streaming + non-streaming + review), SSE response utility with keepalive, Draft CRUD API (4 routes), 6 Writing API routes (3 SSE streaming: draft/expand/co-write; 3 non-streaming: outline/adapt/review), Writing feature services + 12 TanStack Query hooks (including 3 streaming hooks with AbortController + 5min timeout), TipTap rich text editor (minimal mode for LinkedIn, full StarterKit for blog), Writing Workspace UI (mode selector, content type toggle, research selector, platform preview, anti-slop report, co-write panel, outline panel, cover image upload with magic bytes validation), Zod validation for all inputs, token estimation pre-flight checks, auto-save debounced at 5s (disabled during streaming), version pruning beyond 20. 128 new tests (225 total). | `src/shared/lib/prompts/**/*`, `src/shared/lib/ai-client.ts`, `src/shared/lib/sse-utils.ts`, `src/app/api/drafts/**/*`, `src/app/api/write/**/*`, `src/features/writing/**/*` |
+| Phase 4: Publishing | 2026-03-12 | **4a:** Config API (GET/PUT with env var status), Schedule CRUD (5 routes with draft status sync, cancel-revert logic), node-cron scheduler (tick/mutex/stuck-job recovery via instrumentation.ts), content validation (sanitize-html for blog, plain-text checks for LinkedIn), Zod schemas for all inputs. **4b:** Firebase Admin SDK (Firestore publish + Storage image upload with retry, globalThis singleton, base64 service account parsing), blog publish API route (sanitize → upload image → Firestore write → URL construction from BLOG_BASE_URL). **4c:** LinkedIn OAuth 2.0 (auth URL, token exchange, refresh, token storage in appConfig DB), LinkedIn post creation (text + image via Assets API, 401→auto-refresh retry), OAuth callback route, publish route with content validation. **4d:** Publishing services layer (9 fetch wrappers), 9 TanStack Query hooks (schedules CRUD, publish blog/LinkedIn, config query/mutation), 10 UI components (publish-workspace, post-preview, schedule-picker, publish-status, schedule-dashboard, schedule-card, settings-page, linkedin-connect, api-key-status, ban-list-editor), LinkedIn auth initiation route, 3 page updates replacing stubs. 141 new tests (366 total). | `src/shared/lib/firebase-admin.ts`, `src/shared/lib/linkedin-client.ts`, `src/shared/lib/scheduler.ts`, `src/shared/lib/validate-content.ts`, `src/instrumentation.ts`, `src/app/api/config/*`, `src/app/api/schedule/**/*`, `src/app/api/publish/**/*`, `src/features/publishing/**/*` |
 
 ## Error Handling Strategy
 
