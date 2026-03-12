@@ -15,8 +15,6 @@ export {
 } from './writing-api';
 export type { DraftFilters, StreamOptions } from './writing-api';
 
-export {
-  buildResearchContext,
-  buildResearchContextFromDraftLinks,
-} from './research-context';
+// research-context.ts is server-only (imports db/better-sqlite3).
+// Import directly from './research-context' in API routes — not from this barrel.
 export type { ResearchContext, ResearchContextItem } from './research-context';
